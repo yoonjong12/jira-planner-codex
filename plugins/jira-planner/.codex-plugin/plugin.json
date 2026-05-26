@@ -1,0 +1,19 @@
+{
+  "name": "jira-planner",
+  "version": "0.1.0",
+  "description": "Epic-Story-Subtask planning automation",
+  "author": {
+    "name": "",
+    "url": ""
+  },
+  "license": "MIT",
+  "keywords": [],
+  "skills": "./skills/",
+  "hooks": "./hooks.json",
+  "interface": {
+    "displayName": "jira-planner",
+    "shortDescription": "Epic-Story-Subtask planning automation",
+    "category": "Development",
+    "capabilities": ["Read"]
+  }
+}

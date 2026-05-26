@@ -1,0 +1,103 @@
+---
+name: checkpoint
+description: "Save session state (MEMORY.md, status.md) for fast resume."
+---
+
+# Checkpoint Protocol
+
+Save all session state so the next session resumes with minimal token cost.
+
+## Trigger
+
+User invokes `jira-planner:checkpoint` when ready to save session state.
+
+## Save (Checkpoint)
+
+Write in importance order (smallest first = fail-safe).
+
+### Pre-check. Worktree verify (run before any write)
+
+A checkpoint written to the wrong worktree is worse than no checkpoint — it corrupts state in a repo the user isn't thinking about. Always confirm location before writing.
+
+```bash
+pwd
+git worktree list
+git status --short --branch
+```
+
+Verify:
+- `pwd` matches the intended project root for the active story
+- Current branch matches the story's working branch (check MEMORY.md Shortcuts or `plan.md`)
+- No uncommitted changes in paths unrelated to the checkpoint (MEMORY.md, status.md, nanotask files)
+
+If any mismatch, STOP. Surface the discrepancy to the user and ask which worktree is the correct target. Do not write.
+
+### Step 0. Validate (read before write)
+
+Cross-check active files for consistency before saving. Read (use `cat`):
+- `plan.md` — nanotask list, dependency chain, key decisions
+- `status.md` — status table
+- Active nanotask files (`WAO-{subtask}-{n}.md`) for pending/in-progress items only
+
+Check for:
+- **Duplication**: Same diff/modification described in multiple nanotask files
+- **Stale terms**: Deprecated terminology (e.g., old system names) in active docs
+- **Inconsistency**: status.md rows vs plan.md nanotask list (missing/extra items, status mismatch)
+- **Scope drift**: Nanotask content that contradicts current Key Decisions
+
+Fix issues inline before proceeding to save steps. If no issues found, proceed directly.
+
+### Step 1. MEMORY.md (compact, then write)
+
+Write first — auto-loads on next session, fail-safe if session crashes mid-checkpoint.
+
+**MEMORY.md has exactly 3 sections. No other sections allowed:**
+
+```markdown
+# Context
+active_story: {epic_key}/{story_key}
+
+## Working Space
+- Current epic/story summary (1-2 lines)
+- Previous session summary (what was done, key findings, 3-5 lines max)
+
+# Shortcuts
+- Minimal paths for immediate codebase/doc access (table format)
+- Only include paths that are actively referenced across sessions
+
+# TODO
+- Pending jobs with nanotask IDs
+- Open questions that need resolution
+- Do NOT include completed items or stable decisions
+```
+
+**MANDATORY:** The `active_story:` field MUST be present directly under `# Context`.
+Format: `{epic_key}/{story_key}` (e.g., `WAO-303/WAO-310`).
+This is parsed by `jira-planner:onboarding` to locate the workspace directory.
+
+**Compaction rules:**
+- **Target:** Under 50 lines. Anything stable belongs in code/config, not memory.
+- **Remove** anything already encoded in code, config files, or rules.
+- **Remove** completed TODOs — they live in status.md.
+- **Remove** session-specific details older than 1 session.
+- **Never include** key decisions, patterns, project structure, CLI commands that don't change.
+
+### Step 2. status.md
+
+Edit single rows — no full rewrite needed.
+Path: `$JIRA_PLANNER_SPACE_DIR/{epic-id}/{story-id}/status.md`
+
+- Update Status column (`pending` → `in_progress` / `completed`) using `sed`
+- Add commit Hash for completed nanotasks
+- Add Updated date
+- Append new rows if nanotasks were added via Amend
+
+## Restore (New Session)
+
+Read in breadth order (summary first → detail).
+
+1. MEMORY.md — auto-loaded in system prompt (resume context)
+2. `status.md` — current nanotask statuses (use `cat`)
+3. `plan.md` — blueprint context if needed (objectives, decisions)
+4. **Prior artifacts** — for the target nanotask, read completed nanotasks in the same subtask (their plan files, reports/, blueprint/) to avoid re-investigating already documented findings
+5. Resume from first pending/in-progress nanotask

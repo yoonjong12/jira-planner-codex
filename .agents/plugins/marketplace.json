@@ -1,0 +1,19 @@
+{
+  "name": "jira-planner",
+  "interface": {
+    "displayName": "jira-planner"
+  },
+  "plugins": [
+    {
+      "name": "jira-planner",
+      "source": {
+        "source": "local",
+        "path": "./plugins/jira-planner"
+      },
+      "policy": {
+        "installation": "AVAILABLE"
+      },
+      "category": "Development"
+    }
+  ]
+}
