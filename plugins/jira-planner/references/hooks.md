@@ -14,7 +14,7 @@ Type `/hooks` in the terminal and select events, matchers, and commands from the
 **Method 2: Directly edit configuration file**
 | Location | Scope |
 | :--- | :--- |
-| `~/.claude/settings.json` | Global (All projects) |
+| `~/.codex/settings.json` | Global (All projects) |
 | `.claude/settings.json` | Project-specific (Committable) |
 | `.claude/settings.local.json` | Project-specific (gitignored) |
 
